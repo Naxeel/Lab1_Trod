@@ -3,7 +3,32 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 import os
 
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://app_user:app_password@db:5432/app_db")
+def _build_database_url() -> str:
+    direct_url = os.getenv("DATABASE_URL")
+    if direct_url:
+        return direct_url
+
+    user = os.getenv("POSTGRES_USER")
+    password = os.getenv("POSTGRES_PASSWORD")
+    db_name = os.getenv("POSTGRES_DB")
+    host = os.getenv("POSTGRES_HOST", "db")
+    port = os.getenv("POSTGRES_PORT", "5432")
+
+    missing = []
+    if not user:
+        missing.append("POSTGRES_USER")
+    if not password:
+        missing.append("POSTGRES_PASSWORD")
+    if not db_name:
+        missing.append("POSTGRES_DB")
+
+    if missing:
+        raise RuntimeError(f"Missing required database environment variables: {', '.join(missing)}")
+
+    return f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
+
+
+DATABASE_URL = _build_database_url()
 
 
 class Base(DeclarativeBase):
